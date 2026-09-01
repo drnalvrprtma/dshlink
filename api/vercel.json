@@ -2,6 +2,9 @@
   "cleanUrls": false,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/:slug([a-zA-Z0-9_-]{3,30})", "destination": "/api/shorten?slug=:slug&action=redirect" }
+    {
+      "source": "/:slug",
+      "destination": "/api/shorten?slug=:slug&action=redirect"
+    }
   ]
 }
