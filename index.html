@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>dshlink</title>
-<meta name="description" content="Create clean, trackable short links in seconds. No signup, no login, works instantly.">
+<title>dshlink — Perpendek link, tanpa akun</title>
+<meta name="description" content="Buat short link yang rapi dan bisa dilacak dalam hitungan detik. Tanpa daftar, tanpa login, langsung bisa dipakai.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230F1B3D'/%3E%3Cpath d='M13 19l6-6M13.5 13.5h4.8a3.3 3.3 0 0 1 0 6.6h-1.8M18.5 18.5h-4.8a3.3 3.3 0 0 1 0-6.6h1.8' stroke='%232D6CFF' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,14 +26,14 @@
       </span>
       <span class="brand-name">dshlink</span>
     </a>
-    <nav class="main-nav" aria-label="Main">
-      <a href="#how-it-works">How it works</a>
-      <a href="#features">Features</a>
-      <a href="#history">Your links</a>
+    <nav class="main-nav" aria-label="Navigasi utama">
+      <a href="#how-it-works">Cara kerja</a>
+      <a href="#features">Fitur</a>
+      <a href="#history">Link kamu</a>
     </nav>
     <a class="badge-pill" href="#top">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-      No account needed
+      Tanpa akun
     </a>
   </div>
 </header>
@@ -42,17 +42,17 @@
 
   <section class="hero shell">
     <div class="hero-copy">
-      <h1>Turn long links into short ones people actually click.</h1>
-      <p class="hero-sub">Paste a URL, get a short link back in seconds. No signup, no password, no waiting — your links are ready to share right away.</p>
+      <h1 class="anim-load" style="animation-delay:0ms">Ubah link panjang jadi link pendek yang orang mau klik.</h1>
+      <p class="hero-sub anim-load" style="animation-delay:90ms">Tempel URL, dapat link pendek dalam hitungan detik. Tanpa daftar, tanpa password, tanpa nunggu — link kamu langsung siap dibagikan.</p>
 
-      <form class="shorten-form" id="shortenForm" novalidate>
+      <form class="shorten-form anim-load" id="shortenForm" novalidate style="animation-delay:180ms">
         <div class="field-group">
-          <label class="sr-only" for="urlInput">Long URL</label>
+          <label class="sr-only" for="urlInput">URL panjang</label>
           <div class="input-clay url-input-row" id="urlInputRow">
             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 15l6-6M10 8l1-1a4 4 0 015.6 5.6l-2 2M14 16l-1 1a4 4 0 01-5.6-5.6l2-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-            <input type="text" id="urlInput" name="url" placeholder="https://example.com/your-very-long-link" autocomplete="off" spellcheck="false" required>
+            <input type="text" id="urlInput" name="url" placeholder="https://contoh.com/link-kamu-yang-panjang-banget" autocomplete="off" spellcheck="false" required>
             <button type="submit" class="btn-clay btn-primary submit-btn" id="submitBtn">
-              <span class="btn-label">Shorten link</span>
+              <span class="btn-label">Perpendek link</span>
               <span class="btn-spinner" aria-hidden="true"></span>
             </button>
           </div>
@@ -61,83 +61,49 @@
 
         <button type="button" class="options-toggle" id="optionsToggle" aria-expanded="false" aria-controls="advancedOptions">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
-          Customize slug &amp; expiration
+          Atur slug &amp; masa berlaku
         </button>
 
         <div class="advanced-options" id="advancedOptions" hidden>
           <div class="field-group">
-            <label for="slugInput">Custom back-half <span class="optional-tag">optional</span></label>
+            <label for="slugInput">Slug custom <span class="optional-tag">opsional</span></label>
             <div class="input-clay slug-input-row">
-              <span class="slug-prefix" id="slugPrefix">shortlink.app/</span>
-              <input type="text" id="slugInput" name="slug" placeholder="my-link" maxlength="30" autocomplete="off" spellcheck="false">
+              <span class="slug-prefix" id="slugPrefix">dshlink.app/</span>
+              <input type="text" id="slugInput" name="slug" placeholder="link-saya" maxlength="30" autocomplete="off" spellcheck="false">
               <span class="slug-status" id="slugStatus" aria-hidden="true"></span>
             </div>
             <p class="field-msg" id="slugMsg" role="alert"></p>
           </div>
 
           <div class="field-group">
-            <label for="expirationSelect">Expiration</label>
+            <label for="expirationSelect">Masa berlaku</label>
             <div class="input-clay select-row">
               <select id="expirationSelect" name="expiration">
-                <option value="1h">1 hour</option>
-                <option value="1d" selected>1 day</option>
-                <option value="7d">7 days</option>
-                <option value="30d">30 days</option>
-                <option value="custom">Custom date &amp; time</option>
-                <option value="never">Never expires</option>
+                <option value="1h">1 jam</option>
+                <option value="1d" selected>1 hari</option>
+                <option value="7d">7 hari</option>
+                <option value="30d">30 hari</option>
+                <option value="custom">Tanggal &amp; waktu custom</option>
+                <option value="never">Tidak pernah kadaluarsa</option>
               </select>
               <svg class="select-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
             </div>
           </div>
 
           <div class="field-group" id="customDateGroup" hidden>
-            <label for="customDateInput">Expires at</label>
+            <label for="customDateInput">Kadaluarsa pada</label>
             <input type="datetime-local" id="customDateInput" name="customDate" class="input-clay date-input">
           </div>
         </div>
       </form>
 
-      <p class="hero-note">Every link works from any device — it's stored on the server, not just this browser.</p>
+      <p class="hero-note anim-load" style="animation-delay:260ms">Setiap link tetap bisa dibuka dari perangkat mana pun — disimpan di server, bukan cuma di browser ini.</p>
     </div>
 
-    <div class="hero-art" aria-hidden="true">
-      <svg viewBox="0 0 560 520" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-illustration">
-        <ellipse cx="290" cy="470" rx="190" ry="26" fill="#0F1B3D" opacity="0.06"></ellipse>
-        <rect x="70" y="60" width="420" height="300" rx="34" fill="#FFFFFF"></rect>
-        <rect x="70" y="60" width="420" height="300" rx="34" fill="#E8EEFF" opacity="0.5"></rect>
-        <rect x="102" y="96" width="356" height="52" rx="18" fill="#F2F4FB"></rect>
-        <circle cx="128" cy="122" r="9" fill="#2D6CFF"></circle>
-        <rect x="150" y="114" width="230" height="10" rx="5" fill="#C6D3F5"></rect>
-        <rect x="102" y="164" width="230" height="16" rx="8" fill="#0F1B3D"></rect>
-        <rect x="102" y="192" width="300" height="12" rx="6" fill="#D7DEF2"></rect>
-        <rect x="102" y="230" width="150" height="46" rx="16" fill="#2D6CFF"></rect>
-        <path d="M156 253l10 10 22-22" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"></path>
-        <g transform="translate(268,232)">
-          <rect width="132" height="44" rx="16" fill="#FFFFFF" stroke="#C6D3F5" stroke-width="2"></rect>
-          <rect x="16" y="16" width="60" height="12" rx="6" fill="#AAB6DB"></rect>
-        </g>
-        <path d="M126 316q140 34 300 -6" stroke="#0F1B3D" stroke-width="2" stroke-dasharray="2 10" stroke-linecap="round" opacity="0.35"></path>
-        <g transform="translate(300,150)">
-          <circle r="46" fill="#0F1B3D"></circle>
-          <path d="M-14 -4l14 -14M-16 -20h20a12 12 0 010 24h-8M12 20h-20a12 12 0 010 -24h8" stroke="#2D6CFF" stroke-width="4" stroke-linecap="round" fill="none" transform="rotate(45)"></path>
-        </g>
-        <g transform="translate(120,330)">
-          <circle cx="34" cy="34" r="34" fill="#F2C9A0"></circle>
-          <path d="M4 132c2-42 26-66 60-66h20c20 0 40 16 46 44l6 30" fill="#0F1B3D"></path>
-          <rect x="18" y="58" width="70" height="60" rx="24" fill="#16224D"></rect>
-          <path d="M46 80l40 -20" stroke="#F2C9A0" stroke-width="14" stroke-linecap="round"></path>
-          <circle cx="90" cy="58" r="13" fill="#F2C9A0"></circle>
-        </g>
-        <g transform="translate(378,300)">
-          <circle cx="26" cy="26" r="26" fill="#E8EEFF"></circle>
-          <path d="M4 96c2-32 20-50 46-50h10c18 0 32 14 36 34" fill="#2D6CFF" opacity="0.16"></path>
-          <rect x="8" y="40" width="60" height="52" rx="20" fill="#2D6CFF"></rect>
-          <path d="M30 58l16 -10" stroke="#0F1B3D" stroke-width="10" stroke-linecap="round"></path>
-        </g>
-        <circle cx="500" cy="120" r="7" fill="#2D6CFF"></circle>
-        <circle cx="86" cy="200" r="5" fill="#2D6CFF" opacity="0.6"></circle>
-        <circle cx="470" cy="380" r="6" fill="#0F1B3D" opacity="0.15"></circle>
-      </svg>
+    <div class="hero-art anim-load" style="animation-delay:140ms" aria-hidden="true">
+      <div class="hero3d-frame">
+        <canvas id="hero3dCanvas"></canvas>
+      </div>
     </div>
   </section>
 
@@ -148,71 +114,73 @@
   </section>
 
   <section class="how-it-works shell" id="how-it-works">
-    <h2>Three steps, no account</h2>
+    <h2 class="reveal">Tiga langkah, tanpa akun</h2>
     <div class="steps-row">
-      <div class="step-clay">
+      <div class="step-clay reveal">
         <span class="step-index">1</span>
-        <h3>Paste your link</h3>
-        <p>Drop in any long URL — no email, no password, no waiting for a verification link.</p>
+        <h3>Tempel link kamu</h3>
+        <p>Masukkan URL panjang apa saja — tanpa email, tanpa password, tanpa nunggu email verifikasi.</p>
       </div>
-      <div class="step-clay">
+      <div class="step-clay reveal">
         <span class="step-index">2</span>
-        <h3>Shape it your way</h3>
-        <p>Keep the random slug or pick your own, then choose how long it should stay active.</p>
+        <h3>Atur sesuai kebutuhan</h3>
+        <p>Pakai slug acak atau bikin slug sendiri, lalu tentukan berapa lama link ini aktif.</p>
       </div>
-      <div class="step-clay">
+      <div class="step-clay reveal">
         <span class="step-index">3</span>
-        <h3>Share and track</h3>
-        <p>Copy, share, or scan the QR code. Clicks, devices, and approximate location show up as they happen.</p>
+        <h3>Bagikan dan pantau</h3>
+        <p>Salin, bagikan, atau scan QR code-nya. Klik, perangkat, dan lokasi perkiraan langsung muncul begitu ada yang membuka link.</p>
       </div>
     </div>
   </section>
 
-  <section class="features shell" id="features">
-    <h2>Built to actually hold up</h2>
-    <div class="feature-grid">
-      <div class="feature-clay">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2" stroke="#2D6CFF" stroke-width="1.8"></rect><rect x="14" y="3" width="7" height="7" rx="2" stroke="#2D6CFF" stroke-width="1.8"></rect><rect x="3" y="14" width="7" height="7" rx="2" stroke="#2D6CFF" stroke-width="1.8"></rect><path d="M17.5 14v7M14 17.5h7" stroke="#2D6CFF" stroke-width="1.8" stroke-linecap="round"></path></svg>
-        <h3>QR codes, instantly</h3>
-        <p>Every short link comes with a scannable QR code you can save or share straight away.</p>
-      </div>
-      <div class="feature-clay">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 19h16M7 15v4M12 10v9M17 6v13" stroke="#2D6CFF" stroke-width="1.8" stroke-linecap="round"></path></svg>
-        <h3>Real click stats</h3>
-        <p>See click counts, device type, browser, and approximate country — only what's actually available, never invented.</p>
-      </div>
-      <div class="feature-clay">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#2D6CFF" stroke-width="1.8"></circle><path d="M12 7.5v5l3.2 2" stroke="#2D6CFF" stroke-width="1.8" stroke-linecap="round"></path></svg>
-        <h3>Flexible expiration</h3>
-        <p>Set links to expire in an hour, a week, a custom date, or never. Expired links show a clean status page.</p>
-      </div>
-      <div class="feature-clay">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3l2.4 5 5.6.6-4.2 3.9 1.2 5.5L12 15.8 6.9 18l1.3-5.5-4.2-4L9.6 8z" stroke="#2D6CFF" stroke-width="1.6" stroke-linejoin="round"></path></svg>
-        <h3>Your own slug</h3>
-        <p>Type the back-half you want. We check availability as you type, before you submit anything.</p>
-      </div>
-      <div class="feature-clay">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="14" rx="3" stroke="#2D6CFF" stroke-width="1.8"></rect><path d="M3 8h18" stroke="#2D6CFF" stroke-width="1.8"></path></svg>
-        <h3>Works everywhere</h3>
-        <p>Short links resolve from any device, browser, or network — the redirect lives on the server, not your phone.</p>
-      </div>
-      <div class="feature-clay">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4 10-10" stroke="#2D6CFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-        <h3>No account, ever</h3>
-        <p>This browser remembers the links you've made so you can manage them, but nothing requires signing in.</p>
+  <section class="features" id="features">
+    <div class="shell">
+      <h2 class="reveal">Dibuat supaya benar-benar bisa diandalkan</h2>
+      <div class="feature-grid">
+        <div class="feature-clay reveal">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2" stroke="#2D6CFF" stroke-width="1.8"></rect><rect x="14" y="3" width="7" height="7" rx="2" stroke="#2D6CFF" stroke-width="1.8"></rect><rect x="3" y="14" width="7" height="7" rx="2" stroke="#2D6CFF" stroke-width="1.8"></rect><path d="M17.5 14v7M14 17.5h7" stroke="#2D6CFF" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          <h3>QR code otomatis</h3>
+          <p>Setiap short link langsung punya QR code yang bisa disimpan atau dibagikan.</p>
+        </div>
+        <div class="feature-clay reveal">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 19h16M7 15v4M12 10v9M17 6v13" stroke="#2D6CFF" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          <h3>Statistik klik yang nyata</h3>
+          <p>Lihat jumlah klik, jenis perangkat, browser, dan negara perkiraan — hanya data yang memang tersedia, tidak ada yang direkayasa.</p>
+        </div>
+        <div class="feature-clay reveal">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#2D6CFF" stroke-width="1.8"></circle><path d="M12 7.5v5l3.2 2" stroke="#2D6CFF" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          <h3>Masa berlaku fleksibel</h3>
+          <p>Atur link kadaluarsa dalam satu jam, seminggu, tanggal custom, atau tidak pernah. Link expired menampilkan halaman status yang rapi.</p>
+        </div>
+        <div class="feature-clay reveal">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3l2.4 5 5.6.6-4.2 3.9 1.2 5.5L12 15.8 6.9 18l1.3-5.5-4.2-4L9.6 8z" stroke="#2D6CFF" stroke-width="1.6" stroke-linejoin="round"></path></svg>
+          <h3>Slug sesuai keinginan</h3>
+          <p>Ketik sendiri back-half yang kamu mau. Ketersediaannya dicek langsung saat kamu mengetik, sebelum submit.</p>
+        </div>
+        <div class="feature-clay reveal">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="14" rx="3" stroke="#2D6CFF" stroke-width="1.8"></rect><path d="M3 8h18" stroke="#2D6CFF" stroke-width="1.8"></path></svg>
+          <h3>Bisa dibuka di mana saja</h3>
+          <p>Short link aktif dari perangkat, browser, atau jaringan apa pun — redirect-nya berjalan di server, bukan di HP kamu.</p>
+        </div>
+        <div class="feature-clay reveal">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4 10-10" stroke="#2D6CFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <h3>Tanpa akun, selamanya</h3>
+          <p>Browser ini menyimpan daftar link yang kamu buat supaya bisa dikelola, tapi tidak ada yang mewajibkan login.</p>
+        </div>
       </div>
     </div>
   </section>
 
   <section class="history-section shell" id="history">
-    <div class="history-head">
-      <h2>Your links</h2>
-      <p>Saved on this device only — clear your browser data and this list resets, but the links themselves stay live until they expire.</p>
+    <div class="history-head reveal">
+      <h2>Link kamu</h2>
+      <p>Tersimpan hanya di perangkat ini — kalau data browser dihapus, daftar ini akan hilang, tapi link-nya sendiri tetap aktif sampai masa berlakunya habis.</p>
     </div>
     <div class="history-list" id="historyList"></div>
     <div class="empty-state" id="historyEmpty">
       <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><path d="M9 15l6-6M10 8l1-1a4 4 0 015.6 5.6l-2 2M14 16l-1 1a4 4 0 01-5.6-5.6l2-2" stroke="#AAB6DB" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-      <p>No links yet. Shorten your first URL above and it'll show up here.</p>
+      <p>Belum ada link. Perpendek URL pertamamu di atas, nanti muncul di sini.</p>
     </div>
   </section>
 
@@ -220,23 +188,25 @@
 
 <footer class="site-footer">
   <div class="shell footer-inner">
-    <span>shortlink — no account, ever.</span>
-    <span class="footer-muted">Links you create are public URLs. Don't shorten anything sensitive.</span>
+    <span>dshlink — tanpa akun, selamanya.</span>
+    <span class="footer-muted">Link yang kamu buat bersifat publik. Jangan perpendek link yang berisi data sensitif.</span>
   </div>
 </footer>
 
 <div class="modal-backdrop" id="deleteModalBackdrop" hidden>
   <div class="modal-clay" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
-    <h3 id="deleteModalTitle">Delete this link?</h3>
-    <p id="deleteModalBody">This can't be undone. Anyone who has the link will get a not-found page instead of your destination.</p>
+    <h3 id="deleteModalTitle">Hapus link ini?</h3>
+    <p id="deleteModalBody">Tindakan ini tidak bisa dibatalkan. Siapa pun yang membuka link ini nantinya akan melihat halaman tidak ditemukan, bukan tujuan aslinya.</p>
     <div class="modal-actions">
-      <button type="button" class="btn-clay btn-ghost" id="deleteModalCancel">Cancel</button>
-      <button type="button" class="btn-clay btn-danger" id="deleteModalConfirm">Delete link</button>
+      <button type="button" class="btn-clay btn-ghost" id="deleteModalCancel">Batal</button>
+      <button type="button" class="btn-clay btn-danger" id="deleteModalConfirm">Hapus link</button>
     </div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

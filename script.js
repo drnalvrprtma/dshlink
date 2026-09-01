@@ -1,6 +1,6 @@
 var API_BASE = "/api/shorten";
-var HISTORY_KEY = "shortlink_history_v1";
-var RESERVED_SLUGS = ["api", "index", "style", "script", "app", "admin", "shortlink", "www", "static", "assets", "favicon"];
+var HISTORY_KEY = "dshlink_history_v1";
+var RESERVED_SLUGS = ["api", "index", "style", "script", "app", "admin", "dshlink", "shortlink", "www", "static", "assets", "favicon", "model"];
 
 function qs(sel, root) { return (root || document).querySelector(sel); }
 function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -63,7 +63,7 @@ function saveHistory(list) {
   try {
     window.localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
   } catch (err) {
-    showToast("Couldn't save to this browser's storage.", "error");
+    showToast("Gagal menyimpan ke penyimpanan browser ini.", "error");
   }
 }
 
@@ -97,21 +97,21 @@ function isExpired(item) {
 }
 
 function formatDateTime(iso) {
-  if (!iso) return "Never";
+  if (!iso) return "Tidak pernah";
   var d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) + " " + d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 }
 
 function formatExpiryLabel(item) {
-  if (item.noExpiration) return "Never expires";
-  return "Expires " + formatDateTime(item.expiresAt);
+  if (item.noExpiration) return "Tidak pernah kadaluarsa";
+  return "Kadaluarsa " + formatDateTime(item.expiresAt);
 }
 
 function apiFetch(url, options) {
   return fetch(url, options).then(function (res) {
     return res.json().catch(function () { return {}; }).then(function (body) {
       if (!res.ok) {
-        var err = new Error(body.message || "Request failed");
+        var err = new Error(body.message || "Permintaan gagal");
         err.status = res.status;
         err.body = body;
         throw err;
@@ -119,6 +119,119 @@ function apiFetch(url, options) {
       return body;
     });
   });
+}
+
+function initScrollReveal() {
+  var items = qsa(".reveal");
+  if (!items.length) return;
+  if (!window.IntersectionObserver) {
+    items.forEach(function (el) { el.classList.add("is-visible"); });
+    return;
+  }
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
+  items.forEach(function (el) { observer.observe(el); });
+}
+
+function initHero3d() {
+  var canvas = qs("#hero3dCanvas");
+  var frame = qs(".hero3d-frame");
+  if (!canvas || !frame || !window.THREE) return;
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var scene = new window.THREE.Scene();
+  var camera = new window.THREE.PerspectiveCamera(38, 1, 0.1, 100);
+  camera.position.set(0, 0.6, 4.2);
+
+  var renderer = new window.THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+  var ambient = new window.THREE.AmbientLight(0xffffff, 0.65);
+  scene.add(ambient);
+  var keyLight = new window.THREE.DirectionalLight(0x2d6cff, 1.1);
+  keyLight.position.set(3, 4, 3);
+  scene.add(keyLight);
+  var rimLight = new window.THREE.DirectionalLight(0x0f1b3d, 0.5);
+  rimLight.position.set(-3, -2, -2);
+  scene.add(rimLight);
+
+  var activeObject = null;
+
+  function usePlaceholder() {
+    var geometry = new window.THREE.IcosahedronGeometry(1.15, 0);
+    var material = new window.THREE.MeshStandardMaterial({ color: 0x0f1b3d, metalness: 0.25, roughness: 0.35 });
+    var mesh = new window.THREE.Mesh(geometry, material);
+    var wireGeometry = new window.THREE.IcosahedronGeometry(1.3, 0);
+    var wireMaterial = new window.THREE.MeshBasicMaterial({ color: 0x2d6cff, wireframe: true, transparent: true, opacity: 0.35 });
+    var wireMesh = new window.THREE.Mesh(wireGeometry, wireMaterial);
+    var group = new window.THREE.Group();
+    group.add(mesh);
+    group.add(wireMesh);
+    scene.add(group);
+    activeObject = group;
+  }
+
+  function frameObject(object) {
+    var box = new window.THREE.Box3().setFromObject(object);
+    var size = new window.THREE.Vector3();
+    box.getSize(size);
+    var center = new window.THREE.Vector3();
+    box.getCenter(center);
+    object.position.sub(center);
+    var maxDim = Math.max(size.x, size.y, size.z) || 1;
+    var scaleFactor = 1.9 / maxDim;
+    object.scale.setScalar(scaleFactor);
+  }
+
+  if (window.THREE.GLTFLoader) {
+    var loader = new window.THREE.GLTFLoader();
+    loader.load(
+      "model.glb",
+      function (gltf) {
+        var model = gltf.scene;
+        frameObject(model);
+        scene.add(model);
+        activeObject = model;
+      },
+      undefined,
+      function () {
+        usePlaceholder();
+      }
+    );
+  } else {
+    usePlaceholder();
+  }
+
+  function resize() {
+    var width = frame.clientWidth;
+    var height = frame.clientHeight;
+    if (!width || !height) return;
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  }
+
+  resize();
+  window.addEventListener("resize", resize);
+  if (window.ResizeObserver) {
+    new ResizeObserver(resize).observe(frame);
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    if (activeObject && !reduceMotion) {
+      activeObject.rotation.y += 0.006;
+      activeObject.rotation.x = Math.sin(Date.now() * 0.0003) * 0.08;
+    }
+    renderer.render(scene, camera);
+  }
+  animate();
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -176,7 +289,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     if (!isValidSlugFormat(value)) {
       slugStatus.className = "slug-status";
-      slugMsg.textContent = "Use 3-30 letters, numbers, - or _, and avoid reserved words.";
+      slugMsg.textContent = "Gunakan 3-30 huruf, angka, - atau _, dan hindari kata yang sudah dipakai sistem.";
       slugMsg.classList.add("is-error");
       slugMsg.classList.remove("is-success");
       slugAvailable = false;
@@ -188,13 +301,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (slugInput.value !== value) return;
         if (data.available) {
           slugStatus.className = "slug-status available";
-          slugMsg.textContent = "This slug is available.";
+          slugMsg.textContent = "Slug ini masih tersedia.";
           slugMsg.classList.add("is-success");
           slugMsg.classList.remove("is-error");
           slugAvailable = true;
         } else {
           slugStatus.className = "slug-status taken";
-          slugMsg.textContent = "That slug is already taken.";
+          slugMsg.textContent = "Slug ini sudah dipakai.";
           slugMsg.classList.add("is-error");
           slugMsg.classList.remove("is-success");
           slugAvailable = false;
@@ -202,7 +315,7 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .catch(function () {
         slugStatus.className = "slug-status";
-        slugMsg.textContent = "Couldn't check availability right now.";
+        slugMsg.textContent = "Tidak bisa mengecek ketersediaan saat ini.";
         slugMsg.classList.add("is-error");
         slugAvailable = null;
       });
@@ -218,7 +331,7 @@ document.addEventListener("DOMContentLoaded", function () {
       new window.QRCode(container, { text: text, width: 152, height: 152, colorDark: "#0F1B3D", colorLight: "#FFFFFF", correctLevel: window.QRCode.CorrectLevel.M });
     } else {
       var fallback = document.createElement("p");
-      fallback.textContent = "QR code unavailable offline.";
+      fallback.textContent = "QR code tidak tersedia saat offline.";
       container.appendChild(fallback);
     }
   }
@@ -241,7 +354,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function renderResultCard(data) {
     resultSection.hidden = false;
     var statusClass = data.noExpiration || new Date(data.expiresAt).getTime() > Date.now() ? "status-active" : "status-expired";
-    var statusLabel = statusClass === "status-active" ? "Active" : "Expired";
+    var statusLabel = statusClass === "status-active" ? "Aktif" : "Kadaluarsa";
     resultCard.innerHTML =
       '<div class="result-top">' +
         '<div>' +
@@ -251,27 +364,27 @@ document.addEventListener("DOMContentLoaded", function () {
         '<span class="status-badge ' + statusClass + '">' + statusLabel + '</span>' +
       '</div>' +
       '<div class="result-actions">' +
-        '<button type="button" class="btn-clay btn-primary btn-sm" data-action="copy">Copy link</button>' +
-        '<button type="button" class="btn-clay btn-outline btn-sm" data-action="share">Share</button>' +
+        '<button type="button" class="btn-clay btn-primary btn-sm" data-action="copy">Salin link</button>' +
+        '<button type="button" class="btn-clay btn-outline btn-sm" data-action="share">Bagikan</button>' +
       '</div>' +
       '<div class="result-grid">' +
         '<div>' +
-          '<div class="meta-row"><span>Custom slug</span><span>' + (data.custom ? "Yes" : "No") + '</span></div>' +
-          '<div class="meta-row"><span>Expiration</span><span>' + (data.noExpiration ? "Never" : formatDateTime(data.expiresAt)) + '</span></div>' +
-          '<div class="meta-row"><span>Clicks so far</span><span>0</span></div>' +
-          '<div class="meta-row"><span>Created</span><span>' + formatDateTime(data.createdAt) + '</span></div>' +
+          '<div class="meta-row"><span>Slug custom</span><span>' + (data.custom ? "Ya" : "Tidak") + '</span></div>' +
+          '<div class="meta-row"><span>Masa berlaku</span><span>' + (data.noExpiration ? "Tidak pernah" : formatDateTime(data.expiresAt)) + '</span></div>' +
+          '<div class="meta-row"><span>Klik sejauh ini</span><span>0</span></div>' +
+          '<div class="meta-row"><span>Dibuat</span><span>' + formatDateTime(data.createdAt) + '</span></div>' +
         '</div>' +
-        '<div class="qr-box"><div class="qr-canvas"></div><span class="field-msg">Scan to open</span></div>' +
+        '<div class="qr-box"><div class="qr-canvas"></div><span class="field-msg">Scan untuk membuka</span></div>' +
       '</div>';
     buildQrInto(qs(".qr-canvas", resultCard), data.shortUrl);
     qs('[data-action="copy"]', resultCard).addEventListener("click", function () {
-      copyText(data.shortUrl).then(function () { showToast("Link copied to clipboard.", "success"); });
+      copyText(data.shortUrl).then(function () { showToast("Link disalin ke clipboard.", "success"); });
     });
     qs('[data-action="share"]', resultCard).addEventListener("click", function () {
       if (navigator.share) {
-        navigator.share({ title: "shortlink", url: data.shortUrl }).catch(function () {});
+        navigator.share({ title: "dshlink", url: data.shortUrl }).catch(function () {});
       } else {
-        copyText(data.shortUrl).then(function () { showToast("Sharing isn't supported here, so the link was copied.", "success"); });
+        copyText(data.shortUrl).then(function () { showToast("Fitur share tidak didukung di sini, link sudah disalin.", "success"); });
       }
     });
     resultSection.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -286,13 +399,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!isValidUrl(urlValue)) {
       urlRow.classList.add("is-error");
-      urlMsg.textContent = "Enter a full URL starting with http:// or https://";
+      urlMsg.textContent = "Masukkan URL lengkap yang diawali http:// atau https://";
       urlMsg.classList.add("is-error");
       urlInput.focus();
       return;
     }
     if (slugValue && !isValidSlugFormat(slugValue)) {
-      slugMsg.textContent = "Use 3-30 letters, numbers, - or _, and avoid reserved words.";
+      slugMsg.textContent = "Gunakan 3-30 huruf, angka, - atau _, dan hindari kata yang sudah dipakai sistem.";
       slugMsg.classList.add("is-error");
       advancedOptions.hidden = false;
       optionsToggle.setAttribute("aria-expanded", "true");
@@ -300,18 +413,18 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
     if (slugValue && slugAvailable === false) {
-      slugMsg.textContent = "That slug is already taken. Try another.";
+      slugMsg.textContent = "Slug ini sudah dipakai. Coba yang lain.";
       slugMsg.classList.add("is-error");
       advancedOptions.hidden = false;
       slugInput.focus();
       return;
     }
     if (expirationValue === "custom" && !customDateValue) {
-      showToast("Pick a custom expiration date and time.", "error");
+      showToast("Pilih tanggal dan waktu kadaluarsa custom.", "error");
       return;
     }
     if (expirationValue === "custom" && new Date(customDateValue).getTime() <= Date.now()) {
-      showToast("Custom expiration must be in the future.", "error");
+      showToast("Tanggal kadaluarsa custom harus di masa depan.", "error");
       return;
     }
 
@@ -341,7 +454,7 @@ document.addEventListener("DOMContentLoaded", function () {
           clicks: 0
         });
         renderHistory();
-        showToast("Short link created.", "success");
+        showToast("Short link berhasil dibuat.", "success");
         form.reset();
         advancedOptions.hidden = true;
         optionsToggle.setAttribute("aria-expanded", "false");
@@ -352,15 +465,15 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .catch(function (err) {
         if (err.status === 409) {
-          slugMsg.textContent = "That slug was just taken. Try another.";
+          slugMsg.textContent = "Slug itu baru saja diambil orang lain. Coba yang lain.";
           slugMsg.classList.add("is-error");
           advancedOptions.hidden = false;
         } else if (err.status === 400) {
           urlRow.classList.add("is-error");
-          urlMsg.textContent = err.body && err.body.message ? err.body.message : "That URL isn't valid.";
+          urlMsg.textContent = err.body && err.body.message ? err.body.message : "URL itu tidak valid.";
           urlMsg.classList.add("is-error");
         } else {
-          showToast("Something went wrong on our end. Try again.", "error");
+          showToast("Ada masalah di server kami. Coba lagi.", "error");
         }
       })
       .finally(function () {
@@ -375,7 +488,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var byCountry = stats.byCountry || {};
     function barsHtml(map) {
       var keys = Object.keys(map);
-      if (keys.length === 0) return '<p class="field-msg">No clicks recorded yet.</p>';
+      if (keys.length === 0) return '<p class="field-msg">Belum ada klik yang tercatat.</p>';
       var max = Math.max.apply(null, keys.map(function (k) { return map[k]; }));
       return '<div class="stats-bars">' + keys.map(function (k) {
         var pct = Math.max(6, Math.round((map[k] / max) * 100));
@@ -384,12 +497,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     panel.innerHTML =
       '<div class="stats-grid">' +
-        '<div class="stats-box"><div class="stats-box-label">Total clicks</div><div class="stats-box-value">' + stats.totalClicks + '</div></div>' +
-        '<div class="stats-box"><div class="stats-box-label">Status</div><div class="stats-box-value">' + (stats.status === "active" ? "Active" : "Expired") + '</div></div>' +
+        '<div class="stats-box"><div class="stats-box-label">Total klik</div><div class="stats-box-value">' + stats.totalClicks + '</div></div>' +
+        '<div class="stats-box"><div class="stats-box-label">Status</div><div class="stats-box-value">' + (stats.status === "active" ? "Aktif" : "Kadaluarsa") + '</div></div>' +
       '</div>' +
-      '<div><p class="field-msg">By device</p>' + barsHtml(byDevice) + '</div>' +
-      '<div><p class="field-msg">By browser</p>' + barsHtml(byBrowser) + '</div>' +
-      '<div><p class="field-msg">By approximate location</p>' + barsHtml(byCountry) + '</div>';
+      '<div><p class="field-msg">Berdasarkan perangkat</p>' + barsHtml(byDevice) + '</div>' +
+      '<div><p class="field-msg">Berdasarkan browser</p>' + barsHtml(byBrowser) + '</div>' +
+      '<div><p class="field-msg">Berdasarkan lokasi perkiraan</p>' + barsHtml(byCountry) + '</div>';
   }
 
   function renderHistory() {
@@ -411,45 +524,45 @@ document.addEventListener("DOMContentLoaded", function () {
             '<div class="history-short">' + item.shortUrl + '</div>' +
             '<div class="history-original">' + item.originalUrl + '</div>' +
           '</div>' +
-          '<span class="status-badge ' + (expired ? "status-expired" : "status-active") + '">' + (expired ? "Expired" : "Active") + '</span>' +
+          '<span class="status-badge ' + (expired ? "status-expired" : "status-active") + '">' + (expired ? "Kadaluarsa" : "Aktif") + '</span>' +
         '</div>' +
         '<div class="history-meta">' +
-          '<span>' + (item.clicks || 0) + ' clicks</span>' +
+          '<span>' + (item.clicks || 0) + ' klik</span>' +
           '<span>' + formatExpiryLabel(item) + '</span>' +
-          '<span>Created ' + formatDateTime(item.createdAt) + '</span>' +
+          '<span>Dibuat ' + formatDateTime(item.createdAt) + '</span>' +
         '</div>' +
         '<div class="history-actions">' +
-          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="copy">Copy</button>' +
-          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="share">Share</button>' +
-          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="stats">Stats</button>' +
-          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="edit">Edit expiration</button>' +
-          '<button type="button" class="btn-clay btn-danger btn-sm" data-action="delete">Delete</button>' +
+          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="copy">Salin</button>' +
+          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="share">Bagikan</button>' +
+          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="stats">Statistik</button>' +
+          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="edit">Ubah masa berlaku</button>' +
+          '<button type="button" class="btn-clay btn-danger btn-sm" data-action="delete">Hapus</button>' +
         '</div>' +
-        '<div class="stats-panel" data-role="stats-panel"><p class="field-msg">Loading stats...</p></div>' +
+        '<div class="stats-panel" data-role="stats-panel"><p class="field-msg">Memuat statistik...</p></div>' +
         '<div class="expiration-editor" data-role="expiration-editor">' +
           '<div class="input-clay select-row">' +
             '<select data-role="edit-expiration">' +
-              '<option value="1h">1 hour</option>' +
-              '<option value="1d">1 day</option>' +
-              '<option value="7d">7 days</option>' +
-              '<option value="30d">30 days</option>' +
-              '<option value="custom">Custom date</option>' +
-              '<option value="never">Never</option>' +
+              '<option value="1h">1 jam</option>' +
+              '<option value="1d">1 hari</option>' +
+              '<option value="7d">7 hari</option>' +
+              '<option value="30d">30 hari</option>' +
+              '<option value="custom">Tanggal custom</option>' +
+              '<option value="never">Tidak pernah</option>' +
             '</select>' +
           '</div>' +
           '<input type="datetime-local" class="input-clay date-input" data-role="edit-custom-date" hidden style="max-width:220px">' +
-          '<button type="button" class="btn-clay btn-primary btn-sm" data-action="save-expiration">Save</button>' +
+          '<button type="button" class="btn-clay btn-primary btn-sm" data-action="save-expiration">Simpan</button>' +
         '</div>';
       historyList.appendChild(el);
 
       qs('[data-action="copy"]', el).addEventListener("click", function () {
-        copyText(item.shortUrl).then(function () { showToast("Link copied to clipboard.", "success"); });
+        copyText(item.shortUrl).then(function () { showToast("Link disalin ke clipboard.", "success"); });
       });
       qs('[data-action="share"]', el).addEventListener("click", function () {
         if (navigator.share) {
-          navigator.share({ title: "shortlink", url: item.shortUrl }).catch(function () {});
+          navigator.share({ title: "dshlink", url: item.shortUrl }).catch(function () {});
         } else {
-          copyText(item.shortUrl).then(function () { showToast("Sharing isn't supported here, so the link was copied.", "success"); });
+          copyText(item.shortUrl).then(function () { showToast("Fitur share tidak didukung di sini, link sudah disalin.", "success"); });
         }
       });
       qs('[data-action="delete"]', el).addEventListener("click", function () {
@@ -464,11 +577,11 @@ document.addEventListener("DOMContentLoaded", function () {
           apiFetch(API_BASE + "?action=info&slug=" + encodeURIComponent(item.slug) + "&token=" + encodeURIComponent(item.ownerToken))
             .then(function (data) {
               updateHistoryEntry(item.slug, { clicks: data.totalClicks });
-              qs(".history-meta span", el).textContent = data.totalClicks + " clicks";
+              qs(".history-meta span", el).textContent = data.totalClicks + " klik";
               renderStatsPanel(panel, data);
             })
             .catch(function () {
-              panel.innerHTML = '<p class="field-msg is-error">Couldn\'t load stats right now.</p>';
+              panel.innerHTML = '<p class="field-msg is-error">Tidak bisa memuat statistik saat ini.</p>';
             });
         }
       });
@@ -484,7 +597,7 @@ document.addEventListener("DOMContentLoaded", function () {
         var option = editSelect.value;
         var customIso = null;
         if (option === "custom") {
-          if (!editDate.value) { showToast("Pick a date and time first.", "error"); return; }
+          if (!editDate.value) { showToast("Pilih tanggal dan waktu dulu.", "error"); return; }
           customIso = new Date(editDate.value).toISOString();
         }
         apiFetch(API_BASE + "?action=expiration&slug=" + encodeURIComponent(item.slug) + "&token=" + encodeURIComponent(item.ownerToken), {
@@ -494,11 +607,11 @@ document.addEventListener("DOMContentLoaded", function () {
         })
           .then(function (data) {
             updateHistoryEntry(item.slug, { expiresAt: data.expiresAt, noExpiration: data.noExpiration });
-            showToast("Expiration updated.", "success");
+            showToast("Masa berlaku berhasil diperbarui.", "success");
             renderHistory();
           })
           .catch(function () {
-            showToast("Couldn't update expiration.", "error");
+            showToast("Gagal memperbarui masa berlaku.", "error");
           });
       });
     });
@@ -519,10 +632,10 @@ document.addEventListener("DOMContentLoaded", function () {
       .then(function () {
         removeFromHistory(target.slug);
         renderHistory();
-        showToast("Link deleted.", "success");
+        showToast("Link berhasil dihapus.", "success");
       })
       .catch(function () {
-        showToast("Couldn't delete this link. Try again.", "error");
+        showToast("Gagal menghapus link ini. Coba lagi.", "error");
       })
       .finally(function () {
         deleteModalConfirm.disabled = false;
@@ -541,4 +654,6 @@ document.addEventListener("DOMContentLoaded", function () {
   qs("#slugPrefix").textContent = window.location.host + "/";
 
   renderHistory();
+  initScrollReveal();
+  initHero3d();
 });
