@@ -1,659 +1,460 @@
-var API_BASE = "/api/shorten";
-var HISTORY_KEY = "dshlink_history_v1";
-var RESERVED_SLUGS = ["api", "index", "style", "script", "app", "admin", "dshlink", "shortlink", "www", "static", "assets", "favicon", "model"];
+(function(){
+  "use strict";
 
-function qs(sel, root) { return (root || document).querySelector(sel); }
-function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-
-function debounce(fn, wait) {
-  var timer = null;
-  return function () {
-    var args = arguments;
-    var ctx = this;
-    clearTimeout(timer);
-    timer = setTimeout(function () { fn.apply(ctx, args); }, wait);
+  var CONFIG = {
+    contact: {
+      email: "derenmakannasi@gmail.com",
+      whatsappNumber: "6285119268943",
+      whatsappMessage: "Halo Akbar, saya ingin diskusi project.",
+      tiktokUsername: "drnalvrprtm",
+      github: "https://github.com/drnalvrprtma",
+      instagram: "https://instagram.com/drnalvrprtm"
+    },
+    journey: [
+      { year: "2024", tag: "Kelas 8 SMP", title: "Mulai Belajar Coding", desc: "Mengenal HTML dan CSS secara otodidak lewat video tutorial, membuat halaman web Hello World pertama." },
+      { year: "2025", tag: "Kelas 9 SMP", title: "Mendalami JavaScript", desc: "Belajar logika pemrograman dasar dan membuat project sederhana seperti kalkulator." },
+      { year: "2026", tag: "Kelas 10 SMK", title: "Masuk SMKN 1 Kraksaan", desc: "Mengambil jurusan yang relevan dengan pengembangan perangkat lunak." },
+    ]
   };
-}
 
-function showToast(message, type) {
-  var stack = qs("#toastStack");
-  var toast = document.createElement("div");
-  toast.className = "toast" + (type ? " toast-" + type : "");
-  toast.textContent = message;
-  stack.appendChild(toast);
-  setTimeout(function () {
-    toast.style.opacity = "0";
-    toast.style.transition = "opacity 0.25s ease";
-    setTimeout(function () { toast.remove(); }, 260);
-  }, 3600);
-}
+  var root = document.documentElement;
+  root.setAttribute('data-theme', 'dark');
 
-function isValidUrl(value) {
-  if (!value) return false;
-  var trimmed = value.trim();
-  var candidate = trimmed;
-  if (!/^https?:\/\//i.test(candidate)) return false;
-  try {
-    var parsed = new URL(candidate);
-    if (parsed.hostname === window.location.hostname) return false;
-    if (!parsed.hostname || parsed.hostname.indexOf(".") === -1) return false;
-    return true;
-  } catch (err) {
-    return false;
-  }
-}
-
-function isValidSlugFormat(slug) {
-  if (!slug) return true;
-  if (!/^[a-zA-Z0-9-_]{3,30}$/.test(slug)) return false;
-  if (RESERVED_SLUGS.indexOf(slug.toLowerCase()) !== -1) return false;
-  return true;
-}
-
-function loadHistory() {
-  try {
-    var raw = window.localStorage.getItem(HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (err) {
-    return [];
-  }
-}
-
-function saveHistory(list) {
-  try {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-  } catch (err) {
-    showToast("Gagal menyimpan ke penyimpanan browser ini.", "error");
-  }
-}
-
-function addToHistory(entry) {
-  var list = loadHistory();
-  list.unshift(entry);
-  saveHistory(list);
-}
-
-function removeFromHistory(slug) {
-  var list = loadHistory().filter(function (item) { return item.slug !== slug; });
-  saveHistory(list);
-}
-
-function updateHistoryEntry(slug, patch) {
-  var list = loadHistory();
-  var updated = list.map(function (item) {
-    if (item.slug !== slug) return item;
-    var merged = {};
-    for (var k in item) merged[k] = item[k];
-    for (var k2 in patch) merged[k2] = patch[k2];
-    return merged;
-  });
-  saveHistory(updated);
-}
-
-function isExpired(item) {
-  if (item.noExpiration) return false;
-  if (!item.expiresAt) return false;
-  return new Date(item.expiresAt).getTime() <= Date.now();
-}
-
-function formatDateTime(iso) {
-  if (!iso) return "Tidak pernah";
-  var d = new Date(iso);
-  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) + " " + d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-}
-
-function formatExpiryLabel(item) {
-  if (item.noExpiration) return "Tidak pernah kadaluarsa";
-  return "Kadaluarsa " + formatDateTime(item.expiresAt);
-}
-
-function apiFetch(url, options) {
-  return fetch(url, options).then(function (res) {
-    return res.json().catch(function () { return {}; }).then(function (body) {
-      if (!res.ok) {
-        var err = new Error(body.message || "Permintaan gagal");
-        err.status = res.status;
-        err.body = body;
-        throw err;
+  var topnav = document.getElementById('topnav');
+  if(topnav){
+    var lastScrollY = window.scrollY || window.pageYOffset || 0;
+    var navTicking = false;
+    var scrollDelta = 0;
+    function updateNavVisibility(){
+      var currentY = window.scrollY || window.pageYOffset || 0;
+      if(document.getElementById('mobile-menu').classList.contains('open')){ navTicking = false; return; }
+      var diff = currentY - lastScrollY;
+      if(currentY < 80){
+        topnav.classList.remove('nav-hidden');
+        scrollDelta = 0;
+      } else if(diff > 0){
+        scrollDelta = scrollDelta > 0 ? scrollDelta + diff : diff;
+        if(scrollDelta > 24){ topnav.classList.add('nav-hidden'); }
+      } else if(diff < 0){
+        scrollDelta = scrollDelta < 0 ? scrollDelta + diff : diff;
+        if(scrollDelta < -12){ topnav.classList.remove('nav-hidden'); }
       }
-      return body;
-    });
-  });
-}
-
-function initScrollReveal() {
-  var items = qsa(".reveal");
-  if (!items.length) return;
-  if (!window.IntersectionObserver) {
-    items.forEach(function (el) { el.classList.add("is-visible"); });
-    return;
-  }
-  var observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("is-visible");
-        observer.unobserve(entry.target);
+      lastScrollY = currentY;
+      navTicking = false;
+    }
+    window.addEventListener('scroll', function(){
+      if(!navTicking){
+        window.requestAnimationFrame(updateNavVisibility);
+        navTicking = true;
       }
     });
-  }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
-  items.forEach(function (el) { observer.observe(el); });
-}
-
-function initHero3d() {
-  var canvas = qs("#hero3dCanvas");
-  var frame = qs(".hero3d-frame");
-  if (!canvas || !frame || !window.THREE) return;
-  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  var scene = new window.THREE.Scene();
-  var camera = new window.THREE.PerspectiveCamera(38, 1, 0.1, 100);
-  camera.position.set(0, 0.6, 4.2);
-
-  var renderer = new window.THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-
-  var ambient = new window.THREE.AmbientLight(0xffffff, 0.65);
-  scene.add(ambient);
-  var keyLight = new window.THREE.DirectionalLight(0x2d6cff, 1.1);
-  keyLight.position.set(3, 4, 3);
-  scene.add(keyLight);
-  var rimLight = new window.THREE.DirectionalLight(0x0f1b3d, 0.5);
-  rimLight.position.set(-3, -2, -2);
-  scene.add(rimLight);
-
-  var activeObject = null;
-
-  function usePlaceholder() {
-    var geometry = new window.THREE.IcosahedronGeometry(1.15, 0);
-    var material = new window.THREE.MeshStandardMaterial({ color: 0x0f1b3d, metalness: 0.25, roughness: 0.35 });
-    var mesh = new window.THREE.Mesh(geometry, material);
-    var wireGeometry = new window.THREE.IcosahedronGeometry(1.3, 0);
-    var wireMaterial = new window.THREE.MeshBasicMaterial({ color: 0x2d6cff, wireframe: true, transparent: true, opacity: 0.35 });
-    var wireMesh = new window.THREE.Mesh(wireGeometry, wireMaterial);
-    var group = new window.THREE.Group();
-    group.add(mesh);
-    group.add(wireMesh);
-    scene.add(group);
-    activeObject = group;
   }
 
-  function frameObject(object) {
-    var box = new window.THREE.Box3().setFromObject(object);
-    var size = new window.THREE.Vector3();
-    box.getSize(size);
-    var center = new window.THREE.Vector3();
-    box.getCenter(center);
-    object.position.sub(center);
-    var maxDim = Math.max(size.x, size.y, size.z) || 1;
-    var scaleFactor = 1.9 / maxDim;
-    object.scale.setScalar(scaleFactor);
+  var burger = document.getElementById('nav-burger');
+  var mobileMenu = document.getElementById('mobile-menu');
+  burger.addEventListener('click', function(){
+    burger.classList.toggle('open');
+    mobileMenu.classList.toggle('open');
+  });
+  var mLinks = mobileMenu.querySelectorAll('a');
+  for(var mi=0; mi<mLinks.length; mi++){
+    mLinks[mi].addEventListener('click', function(){
+      burger.classList.remove('open');
+      mobileMenu.classList.remove('open');
+    });
   }
 
-  if (window.THREE.GLTFLoader) {
-    var loader = new window.THREE.GLTFLoader();
-    loader.load(
-      "model.glb",
-      function (gltf) {
-        var model = gltf.scene;
-        frameObject(model);
-        scene.add(model);
-        activeObject = model;
-      },
-      undefined,
-      function () {
-        usePlaceholder();
+  var navLinks = document.querySelectorAll('.nav-links a');
+  for(var ni=0; ni<navLinks.length; ni++){
+    navLinks[ni].addEventListener('click', function(){
+      var el = this;
+      el.classList.remove('pulse');
+      void el.offsetWidth;
+      el.classList.add('pulse');
+      setTimeout(function(){ el.classList.remove('pulse'); }, 550);
+    });
+  }
+  var navSections = [];
+  for(var nsi=0; nsi<navLinks.length; nsi++){
+    var href = navLinks[nsi].getAttribute('href') || '';
+    if(href.charAt(0) === '#'){
+      var target = document.getElementById(href.slice(1));
+      if(target){ navSections.push({ el: target, link: navLinks[nsi] }); }
+    }
+  }
+  if(navSections.length > 0 && 'IntersectionObserver' in window){
+    var spyObserver = new IntersectionObserver(function(entries){
+      for(var ei=0; ei<entries.length; ei++){
+        if(!entries[ei].isIntersecting) continue;
+        for(var nsj=0; nsj<navSections.length; nsj++){
+          navSections[nsj].link.classList.remove('active');
+        }
+        for(var nsk=0; nsk<navSections.length; nsk++){
+          if(navSections[nsk].el === entries[ei].target){
+            navSections[nsk].link.classList.add('active');
+            break;
+          }
+        }
       }
-    );
+    }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 });
+    for(var nsl=0; nsl<navSections.length; nsl++){ spyObserver.observe(navSections[nsl].el); }
+  }
+
+  var typerEl = document.getElementById('hero-typer');
+  var typerLines = [
+    { prompt: 'fitrah@smkn1kraksaan', path: '~$ whoami', done: false },
+    { prompt: '', path: '&gt; FullStack Developer', done: false }
+  ];
+  function typeLines(){
+    var lineIndex = 0;
+    function renderStatic(){
+      var html = '';
+      for(var i=0;i<lineIndex;i++){
+        var l = typerLines[i];
+        html += '<div class="line">' + (l.prompt ? '<span class="prompt">' + l.prompt + '</span> ' : '') + '<span class="path">' + l.path.replace('&gt;','>') + '</span></div>';
+      }
+      return html;
+    }
+    function typeOne(){
+      if(lineIndex >= typerLines.length){
+        typerEl.innerHTML = renderStatic() + '<span class="cursor"></span>';
+        return;
+      }
+      var l = typerLines[lineIndex];
+      var full = l.path.replace('&gt;','>');
+      var i = 0;
+      var timer = setInterval(function(){
+        i++;
+        var partial = full.slice(0, i);
+        typerEl.innerHTML = renderStatic() + '<div class="line">' + (l.prompt ? '<span class="prompt">' + l.prompt + '</span> ' : '') + '<span class="path">' + partial + '</span><span class="cursor"></span></div>';
+        if(i >= full.length){
+          clearInterval(timer);
+          lineIndex++;
+          setTimeout(typeOne, 260);
+        }
+      }, 32);
+    }
+    typeOne();
+  }
+  typeLines();
+
+  var revealTargets = document.querySelectorAll('[data-reveal]');
+  (function staggerReveal(){
+    var counters = [];
+    var parents = [];
+    for(var si=0; si<revealTargets.length; si++){
+      var parentEl = revealTargets[si].parentElement;
+      var idx = parents.indexOf(parentEl);
+      if(idx === -1){ parents.push(parentEl); counters.push(0); idx = parents.length - 1; }
+      var order = counters[idx];
+      counters[idx] = order + 1;
+      revealTargets[si].style.transitionDelay = Math.min(order, 5) * 90 + 'ms';
+    }
+  })();
+  if('IntersectionObserver' in window){
+    var revealObserver = new IntersectionObserver(function(entries){
+      for(var i=0;i<entries.length;i++){
+        if(entries[i].isIntersecting){
+          entries[i].target.classList.add('in');
+          revealObserver.unobserve(entries[i].target);
+        }
+      }
+    }, { threshold: 0.18 });
+    for(var ri=0; ri<revealTargets.length; ri++){ revealObserver.observe(revealTargets[ri]); }
   } else {
-    usePlaceholder();
+    for(var rj=0; rj<revealTargets.length; rj++){ revealTargets[rj].classList.add('in'); }
   }
 
-  function resize() {
-    var width = frame.clientWidth;
-    var height = frame.clientHeight;
-    if (!width || !height) return;
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  }
-
-  resize();
-  window.addEventListener("resize", resize);
-  if (window.ResizeObserver) {
-    new ResizeObserver(resize).observe(frame);
-  }
-
-  function animate() {
-    requestAnimationFrame(animate);
-    if (activeObject && !reduceMotion) {
-      activeObject.rotation.y += 0.006;
-      activeObject.rotation.x = Math.sin(Date.now() * 0.0003) * 0.08;
+  var heroFigureWrap = document.getElementById('hero-figure-wrap');
+  var heroSection = document.getElementById('hero');
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(heroFigureWrap && heroSection && !reduceMotion && window.innerWidth > 900){
+    var ticking = false;
+    function updateParallax(){
+      var rect = heroSection.getBoundingClientRect();
+      var scrolledPast = Math.max(0, -rect.top);
+      var offset = scrolledPast * 0.22;
+      heroFigureWrap.style.transform = 'translateY(' + offset + 'px)';
+      ticking = false;
     }
-    renderer.render(scene, camera);
-  }
-  animate();
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-  var form = qs("#shortenForm");
-  var urlInput = qs("#urlInput");
-  var urlMsg = qs("#urlMsg");
-  var urlRow = qs("#urlInputRow");
-  var submitBtn = qs("#submitBtn");
-  var optionsToggle = qs("#optionsToggle");
-  var advancedOptions = qs("#advancedOptions");
-  var slugInput = qs("#slugInput");
-  var slugStatus = qs("#slugStatus");
-  var slugMsg = qs("#slugMsg");
-  var expirationSelect = qs("#expirationSelect");
-  var customDateGroup = qs("#customDateGroup");
-  var customDateInput = qs("#customDateInput");
-  var resultSection = qs("#resultSection");
-  var resultCard = qs("#resultCard");
-  var historyList = qs("#historyList");
-  var historyEmpty = qs("#historyEmpty");
-  var deleteModalBackdrop = qs("#deleteModalBackdrop");
-  var deleteModalCancel = qs("#deleteModalCancel");
-  var deleteModalConfirm = qs("#deleteModalConfirm");
-  var pendingDeleteSlug = null;
-  var slugAvailable = null;
-
-  optionsToggle.addEventListener("click", function () {
-    var isOpen = advancedOptions.hidden === false;
-    advancedOptions.hidden = isOpen;
-    optionsToggle.setAttribute("aria-expanded", String(!isOpen));
-  });
-
-  expirationSelect.addEventListener("change", function () {
-    customDateGroup.hidden = expirationSelect.value !== "custom";
-    if (expirationSelect.value === "custom" && !customDateInput.value) {
-      var soon = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      soon.setSeconds(0, 0);
-      customDateInput.value = soon.toISOString().slice(0, 16);
-    }
-  });
-
-  urlInput.addEventListener("input", function () {
-    urlRow.classList.remove("is-error");
-    urlMsg.textContent = "";
-    urlMsg.classList.remove("is-error");
-  });
-
-  var checkSlug = debounce(function (value) {
-    if (!value) {
-      slugStatus.className = "slug-status";
-      slugMsg.textContent = "";
-      slugMsg.classList.remove("is-error", "is-success");
-      slugAvailable = null;
-      return;
-    }
-    if (!isValidSlugFormat(value)) {
-      slugStatus.className = "slug-status";
-      slugMsg.textContent = "Gunakan 3-30 huruf, angka, - atau _, dan hindari kata yang sudah dipakai sistem.";
-      slugMsg.classList.add("is-error");
-      slugMsg.classList.remove("is-success");
-      slugAvailable = false;
-      return;
-    }
-    slugStatus.className = "slug-status checking";
-    apiFetch(API_BASE + "?action=check&slug=" + encodeURIComponent(value))
-      .then(function (data) {
-        if (slugInput.value !== value) return;
-        if (data.available) {
-          slugStatus.className = "slug-status available";
-          slugMsg.textContent = "Slug ini masih tersedia.";
-          slugMsg.classList.add("is-success");
-          slugMsg.classList.remove("is-error");
-          slugAvailable = true;
-        } else {
-          slugStatus.className = "slug-status taken";
-          slugMsg.textContent = "Slug ini sudah dipakai.";
-          slugMsg.classList.add("is-error");
-          slugMsg.classList.remove("is-success");
-          slugAvailable = false;
-        }
-      })
-      .catch(function () {
-        slugStatus.className = "slug-status";
-        slugMsg.textContent = "Tidak bisa mengecek ketersediaan saat ini.";
-        slugMsg.classList.add("is-error");
-        slugAvailable = null;
-      });
-  }, 420);
-
-  slugInput.addEventListener("input", function () {
-    checkSlug(slugInput.value.trim());
-  });
-
-  function buildQrInto(container, text) {
-    container.innerHTML = "";
-    if (window.QRCode) {
-      new window.QRCode(container, { text: text, width: 152, height: 152, colorDark: "#0F1B3D", colorLight: "#FFFFFF", correctLevel: window.QRCode.CorrectLevel.M });
-    } else {
-      var fallback = document.createElement("p");
-      fallback.textContent = "QR code tidak tersedia saat offline.";
-      container.appendChild(fallback);
-    }
-  }
-
-  function copyText(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      return navigator.clipboard.writeText(text);
-    }
-    var temp = document.createElement("textarea");
-    temp.value = text;
-    temp.style.position = "fixed";
-    temp.style.opacity = "0";
-    document.body.appendChild(temp);
-    temp.select();
-    try { document.execCommand("copy"); } catch (err) {}
-    document.body.removeChild(temp);
-    return Promise.resolve();
-  }
-
-  function renderResultCard(data) {
-    resultSection.hidden = false;
-    var statusClass = data.noExpiration || new Date(data.expiresAt).getTime() > Date.now() ? "status-active" : "status-expired";
-    var statusLabel = statusClass === "status-active" ? "Aktif" : "Kadaluarsa";
-    resultCard.innerHTML =
-      '<div class="result-top">' +
-        '<div>' +
-          '<div class="result-short-url">' + data.shortUrl + '</div>' +
-          '<div class="result-original">' + data.originalUrl + '</div>' +
-        '</div>' +
-        '<span class="status-badge ' + statusClass + '">' + statusLabel + '</span>' +
-      '</div>' +
-      '<div class="result-actions">' +
-        '<button type="button" class="btn-clay btn-primary btn-sm" data-action="copy">Salin link</button>' +
-        '<button type="button" class="btn-clay btn-outline btn-sm" data-action="share">Bagikan</button>' +
-      '</div>' +
-      '<div class="result-grid">' +
-        '<div>' +
-          '<div class="meta-row"><span>Slug custom</span><span>' + (data.custom ? "Ya" : "Tidak") + '</span></div>' +
-          '<div class="meta-row"><span>Masa berlaku</span><span>' + (data.noExpiration ? "Tidak pernah" : formatDateTime(data.expiresAt)) + '</span></div>' +
-          '<div class="meta-row"><span>Klik sejauh ini</span><span>0</span></div>' +
-          '<div class="meta-row"><span>Dibuat</span><span>' + formatDateTime(data.createdAt) + '</span></div>' +
-        '</div>' +
-        '<div class="qr-box"><div class="qr-canvas"></div><span class="field-msg">Scan untuk membuka</span></div>' +
-      '</div>';
-    buildQrInto(qs(".qr-canvas", resultCard), data.shortUrl);
-    qs('[data-action="copy"]', resultCard).addEventListener("click", function () {
-      copyText(data.shortUrl).then(function () { showToast("Link disalin ke clipboard.", "success"); });
-    });
-    qs('[data-action="share"]', resultCard).addEventListener("click", function () {
-      if (navigator.share) {
-        navigator.share({ title: "dshlink", url: data.shortUrl }).catch(function () {});
-      } else {
-        copyText(data.shortUrl).then(function () { showToast("Fitur share tidak didukung di sini, link sudah disalin.", "success"); });
+    window.addEventListener('scroll', function(){
+      if(!ticking){
+        window.requestAnimationFrame(updateParallax);
+        ticking = true;
       }
     });
-    resultSection.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var urlValue = urlInput.value.trim();
-    var slugValue = slugInput.value.trim();
-    var expirationValue = expirationSelect.value;
-    var customDateValue = customDateInput.value;
-
-    if (!isValidUrl(urlValue)) {
-      urlRow.classList.add("is-error");
-      urlMsg.textContent = "Masukkan URL lengkap yang diawali http:// atau https://";
-      urlMsg.classList.add("is-error");
-      urlInput.focus();
-      return;
-    }
-    if (slugValue && !isValidSlugFormat(slugValue)) {
-      slugMsg.textContent = "Gunakan 3-30 huruf, angka, - atau _, dan hindari kata yang sudah dipakai sistem.";
-      slugMsg.classList.add("is-error");
-      advancedOptions.hidden = false;
-      optionsToggle.setAttribute("aria-expanded", "true");
-      slugInput.focus();
-      return;
-    }
-    if (slugValue && slugAvailable === false) {
-      slugMsg.textContent = "Slug ini sudah dipakai. Coba yang lain.";
-      slugMsg.classList.add("is-error");
-      advancedOptions.hidden = false;
-      slugInput.focus();
-      return;
-    }
-    if (expirationValue === "custom" && !customDateValue) {
-      showToast("Pilih tanggal dan waktu kadaluarsa custom.", "error");
-      return;
-    }
-    if (expirationValue === "custom" && new Date(customDateValue).getTime() <= Date.now()) {
-      showToast("Tanggal kadaluarsa custom harus di masa depan.", "error");
-      return;
-    }
-
-    submitBtn.classList.add("is-loading");
-    submitBtn.disabled = true;
-
-    apiFetch(API_BASE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        originalUrl: urlValue,
-        customSlug: slugValue || null,
-        expirationOption: expirationValue,
-        customExpiresAt: expirationValue === "custom" ? new Date(customDateValue).toISOString() : null
-      })
-    })
-      .then(function (data) {
-        renderResultCard(data);
-        addToHistory({
-          slug: data.slug,
-          shortUrl: data.shortUrl,
-          originalUrl: data.originalUrl,
-          ownerToken: data.ownerToken,
-          createdAt: data.createdAt,
-          expiresAt: data.expiresAt,
-          noExpiration: data.noExpiration,
-          clicks: 0
-        });
-        renderHistory();
-        showToast("Short link berhasil dibuat.", "success");
-        form.reset();
-        advancedOptions.hidden = true;
-        optionsToggle.setAttribute("aria-expanded", "false");
-        customDateGroup.hidden = true;
-        slugStatus.className = "slug-status";
-        slugMsg.textContent = "";
-        slugAvailable = null;
-      })
-      .catch(function (err) {
-        if (err.status === 409) {
-          slugMsg.textContent = "Slug itu baru saja diambil orang lain. Coba yang lain.";
-          slugMsg.classList.add("is-error");
-          advancedOptions.hidden = false;
-        } else if (err.status === 400) {
-          urlRow.classList.add("is-error");
-          urlMsg.textContent = err.body && err.body.message ? err.body.message : "URL itu tidak valid.";
-          urlMsg.classList.add("is-error");
-        } else {
-          showToast("Ada masalah di server kami. Coba lagi.", "error");
+  var skillRows = document.querySelectorAll('.skill-row');
+  if('IntersectionObserver' in window){
+    var skillObserver = new IntersectionObserver(function(entries){
+      for(var i=0;i<entries.length;i++){
+        if(entries[i].isIntersecting){
+          entries[i].target.classList.add('in');
+          skillObserver.unobserve(entries[i].target);
         }
-      })
-      .finally(function () {
-        submitBtn.classList.remove("is-loading");
-        submitBtn.disabled = false;
-      });
-  });
+      }
+    }, { threshold: 0.5 });
+    for(var si=0; si<skillRows.length; si++){ skillObserver.observe(skillRows[si]); }
+  }
 
-  function renderStatsPanel(panel, stats) {
-    var byDevice = stats.byDevice || {};
-    var byBrowser = stats.byBrowser || {};
-    var byCountry = stats.byCountry || {};
-    function barsHtml(map) {
-      var keys = Object.keys(map);
-      if (keys.length === 0) return '<p class="field-msg">Belum ada klik yang tercatat.</p>';
-      var max = Math.max.apply(null, keys.map(function (k) { return map[k]; }));
-      return '<div class="stats-bars">' + keys.map(function (k) {
-        var pct = Math.max(6, Math.round((map[k] / max) * 100));
-        return '<div class="stats-bar-row"><span class="stats-bar-label">' + k + '</span><div class="stats-bar-track"><div class="stats-bar-fill" style="width:' + pct + '%"></div></div><span class="stats-bar-count">' + map[k] + '</span></div>';
-      }).join("") + '</div>';
+  function escapeHtml(str){
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  var timelineList = document.getElementById('timeline-list');
+  var tlHtml = '';
+  for(var t=0; t<CONFIG.journey.length; t++){
+    var j = CONFIG.journey[t];
+    tlHtml += '<div class="tl-item" data-reveal>' +
+      '<div class="tl-year">' + escapeHtml(j.year) + '</div>' +
+      '<div class="tl-body"><h4>' + escapeHtml(j.title) + '</h4><p>' + escapeHtml(j.desc) + '</p><span class="tl-tag">' + escapeHtml(j.tag) + '</span></div>' +
+    '</div>';
+  }
+  timelineList.innerHTML = tlHtml;
+  var tlItems = timelineList.querySelectorAll('[data-reveal]');
+  if('IntersectionObserver' in window){
+    var tlObserver = new IntersectionObserver(function(entries){
+      for(var i=0;i<entries.length;i++){
+        if(entries[i].isIntersecting){ entries[i].target.classList.add('in'); tlObserver.unobserve(entries[i].target); }
+      }
+    }, { threshold: 0.15 });
+    for(var tk=0; tk<tlItems.length; tk++){ tlObserver.observe(tlItems[tk]); }
+  } else {
+    for(var tl2=0; tl2<tlItems.length; tl2++){ tlItems[tl2].classList.add('in'); }
+  }
+
+  function observeNew(nodeList){
+    if(!('IntersectionObserver' in window)){
+      for(var i=0;i<nodeList.length;i++){ nodeList[i].classList.add('in'); }
+      return;
     }
-    panel.innerHTML =
-      '<div class="stats-grid">' +
-        '<div class="stats-box"><div class="stats-box-label">Total klik</div><div class="stats-box-value">' + stats.totalClicks + '</div></div>' +
-        '<div class="stats-box"><div class="stats-box-label">Status</div><div class="stats-box-value">' + (stats.status === "active" ? "Aktif" : "Kadaluarsa") + '</div></div>' +
+    var obs = new IntersectionObserver(function(entries){
+      for(var j=0;j<entries.length;j++){
+        if(entries[j].isIntersecting){ entries[j].target.classList.add('in'); obs.unobserve(entries[j].target); }
+      }
+    }, { threshold: 0.15 });
+    for(var k=0;k<nodeList.length;k++){ obs.observe(nodeList[k]); }
+  }
+
+  function renderProjectCard(p, index){
+    var thumbInner = p.image_url
+      ? '<img src="' + escapeHtml(p.image_url) + '" alt="' + escapeHtml(p.title) + '">'
+      : '<div class="ph">no preview</div>';
+    var techHtml = '';
+    if(Array.isArray(p.tech)){
+      for(var i=0;i<p.tech.length;i++){ techHtml += '<span>' + escapeHtml(p.tech[i]) + '</span>'; }
+    }
+    var previewBtn = p.preview_url ? '<a href="' + escapeHtml(p.preview_url) + '" target="_blank" rel="noopener" class="project-link primary">Preview</a>' : '';
+    var sourceBtn = p.source_url ? '<a href="' + escapeHtml(p.source_url) + '" target="_blank" rel="noopener" class="project-link secondary">Source</a>' : '';
+    var delay = Math.min(index, 6) * 70;
+    return '<div class="project-card" data-reveal style="transition-delay:' + delay + 'ms;">' +
+      '<div class="project-thumb">' + thumbInner + (p.year ? '<span class="project-year">' + escapeHtml(p.year) + '</span>' : '') + '</div>' +
+      '<div class="project-body">' +
+        '<div class="project-title">' + escapeHtml(p.title) + '</div>' +
+        '<div class="project-desc">' + escapeHtml(p.description) + '</div>' +
+        '<div class="project-tech">' + techHtml + '</div>' +
+        '<div class="project-actions">' + previewBtn + sourceBtn + '</div>' +
       '</div>' +
-      '<div><p class="field-msg">Berdasarkan perangkat</p>' + barsHtml(byDevice) + '</div>' +
-      '<div><p class="field-msg">Berdasarkan browser</p>' + barsHtml(byBrowser) + '</div>' +
-      '<div><p class="field-msg">Berdasarkan lokasi perkiraan</p>' + barsHtml(byCountry) + '</div>';
+    '</div>';
   }
 
-  function renderHistory() {
-    var list = loadHistory();
-    historyList.innerHTML = "";
-    if (list.length === 0) {
-      historyEmpty.classList.add("is-visible");
+  function renderCertCard(c, index){
+    var thumbInner = c.image_url
+      ? '<img src="' + escapeHtml(c.image_url) + '" alt="' + escapeHtml(c.title) + '">'
+      : '';
+    var link = c.credential_url ? '<a href="' + escapeHtml(c.credential_url) + '" target="_blank" rel="noopener" class="cert-link">Lihat Sertifikat</a>' : '';
+    var delay = Math.min(index, 6) * 70;
+    return '<div class="cert-card" data-reveal style="transition-delay:' + delay + 'ms;">' +
+      '<div class="cert-thumb">' + thumbInner + '</div>' +
+      '<div class="cert-body">' +
+        '<div class="cert-title">' + escapeHtml(c.title) + '</div>' +
+        '<div class="cert-meta">' + escapeHtml(c.issuer) + (c.year ? ' &middot; ' + escapeHtml(c.year) : '') + '</div>' +
+        link +
+      '</div>' +
+    '</div>';
+  }
+
+  var supaClient = null;
+  function getSupa(){
+    if(!supaClient && window.supabase){
+      supaClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+    }
+    return supaClient;
+  }
+
+  function loadProjects(){
+    var grid = document.getElementById('projects-grid');
+    var client = getSupa();
+    if(!grid || !client) return;
+    client.from('projects').select('*').order('sort_order', { ascending: true })
+      .then(function(res){
+        if(res.error){ grid.innerHTML = '<div class="state-msg">Gagal memuat project.</div>'; return; }
+        var rows = res.data || [];
+        if(rows.length === 0){ grid.innerHTML = '<div class="state-msg">Belum ada project untuk ditampilkan.</div>'; return; }
+        var html = '';
+        for(var i=0;i<rows.length;i++){ html += renderProjectCard(rows[i], i); }
+        grid.innerHTML = html;
+        observeNew(grid.querySelectorAll('[data-reveal]'));
+      })
+      .catch(function(){ grid.innerHTML = '<div class="state-msg">Gagal memuat project.</div>'; });
+  }
+
+  function loadCertificates(){
+    var grid = document.getElementById('certificates-grid');
+    var client = getSupa();
+    if(!grid || !client) return;
+    client.from('certificates').select('*').order('sort_order', { ascending: true })
+      .then(function(res){
+        if(res.error){ grid.innerHTML = '<div class="state-msg">Belum ada sertifikat, atau tabel certificates belum dibuat.</div>'; return; }
+        var rows = res.data || [];
+        if(rows.length === 0){ grid.innerHTML = '<div class="state-msg">Belum ada sertifikat untuk ditampilkan.</div>'; return; }
+        var html = '';
+        for(var i=0;i<rows.length;i++){ html += renderCertCard(rows[i], i); }
+        grid.innerHTML = html;
+        observeNew(grid.querySelectorAll('[data-reveal]'));
+      })
+      .catch(function(){ grid.innerHTML = '<div class="state-msg">Gagal memuat sertifikat.</div>'; });
+  }
+
+  loadProjects();
+  loadCertificates();
+
+  var audio = document.getElementById('audio-el');
+  var btnPlay = document.getElementById('btn-play');
+  var iconPlay = document.getElementById('icon-play');
+  var iconPause = document.getElementById('icon-pause');
+  var seek = document.getElementById('seek');
+  var timeCur = document.getElementById('time-cur');
+  var timeDur = document.getElementById('time-dur');
+  var playerTitle = document.getElementById('player-title');
+  var playerArtist = document.getElementById('player-artist');
+  var playerArt = document.getElementById('player-art-img');
+  var playlistList = document.getElementById('playlist-list');
+  var playlistCoverImg = document.getElementById('playlist-cover-img');
+  var playlistSub = document.getElementById('playlist-sub');
+  var playlistTracks = [];
+  var currentTrack = 0;
+
+  function formatTime(sec){
+    if(!isFinite(sec) || sec < 0) sec = 0;
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function renderPlaylist(){
+    if(playlistTracks.length === 0){
+      playlistList.innerHTML = '<div class="state-msg">Belum ada lagu di playlist.</div>';
       return;
     }
-    historyEmpty.classList.remove("is-visible");
-    list.forEach(function (item) {
-      var expired = isExpired(item);
-      var el = document.createElement("div");
-      el.className = "history-item";
-      el.setAttribute("data-slug", item.slug);
-      el.innerHTML =
-        '<div class="history-item-top">' +
-          '<div class="history-link-info">' +
-            '<div class="history-short">' + item.shortUrl + '</div>' +
-            '<div class="history-original">' + item.originalUrl + '</div>' +
-          '</div>' +
-          '<span class="status-badge ' + (expired ? "status-expired" : "status-active") + '">' + (expired ? "Kadaluarsa" : "Aktif") + '</span>' +
-        '</div>' +
-        '<div class="history-meta">' +
-          '<span>' + (item.clicks || 0) + ' klik</span>' +
-          '<span>' + formatExpiryLabel(item) + '</span>' +
-          '<span>Dibuat ' + formatDateTime(item.createdAt) + '</span>' +
-        '</div>' +
-        '<div class="history-actions">' +
-          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="copy">Salin</button>' +
-          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="share">Bagikan</button>' +
-          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="stats">Statistik</button>' +
-          '<button type="button" class="btn-clay btn-outline btn-sm" data-action="edit">Ubah masa berlaku</button>' +
-          '<button type="button" class="btn-clay btn-danger btn-sm" data-action="delete">Hapus</button>' +
-        '</div>' +
-        '<div class="stats-panel" data-role="stats-panel"><p class="field-msg">Memuat statistik...</p></div>' +
-        '<div class="expiration-editor" data-role="expiration-editor">' +
-          '<div class="input-clay select-row">' +
-            '<select data-role="edit-expiration">' +
-              '<option value="1h">1 jam</option>' +
-              '<option value="1d">1 hari</option>' +
-              '<option value="7d">7 hari</option>' +
-              '<option value="30d">30 hari</option>' +
-              '<option value="custom">Tanggal custom</option>' +
-              '<option value="never">Tidak pernah</option>' +
-            '</select>' +
-          '</div>' +
-          '<input type="datetime-local" class="input-clay date-input" data-role="edit-custom-date" hidden style="max-width:220px">' +
-          '<button type="button" class="btn-clay btn-primary btn-sm" data-action="save-expiration">Simpan</button>' +
-        '</div>';
-      historyList.appendChild(el);
-
-      qs('[data-action="copy"]', el).addEventListener("click", function () {
-        copyText(item.shortUrl).then(function () { showToast("Link disalin ke clipboard.", "success"); });
+    var html = '';
+    for(var i=0;i<playlistTracks.length;i++){
+      var tr = playlistTracks[i];
+      html += '<div class="plist-item' + (i === currentTrack ? ' active' : '') + '" data-index="' + i + '">' +
+        '<span class="plist-num">' + (i + 1) + '</span>' +
+        '<div class="plist-info"><div class="plist-title">' + escapeHtml(tr.title) + '</div><div class="plist-artist">' + escapeHtml(tr.artist) + '</div></div>' +
+        '<span class="plist-dur">' + escapeHtml(tr.duration || '--:--') + '</span>' +
+      '</div>';
+    }
+    playlistList.innerHTML = html;
+    var items = playlistList.querySelectorAll('.plist-item');
+    for(var j=0;j<items.length;j++){
+      items[j].addEventListener('click', function(){
+        loadTrack(parseInt(this.getAttribute('data-index'), 10));
+        playAudio();
       });
-      qs('[data-action="share"]', el).addEventListener("click", function () {
-        if (navigator.share) {
-          navigator.share({ title: "dshlink", url: item.shortUrl }).catch(function () {});
-        } else {
-          copyText(item.shortUrl).then(function () { showToast("Fitur share tidak didukung di sini, link sudah disalin.", "success"); });
-        }
-      });
-      qs('[data-action="delete"]', el).addEventListener("click", function () {
-        pendingDeleteSlug = item.slug;
-        deleteModalBackdrop.hidden = false;
-      });
-      qs('[data-action="stats"]', el).addEventListener("click", function () {
-        var panel = qs('[data-role="stats-panel"]', el);
-        var willOpen = !panel.classList.contains("is-open");
-        panel.classList.toggle("is-open");
-        if (willOpen) {
-          apiFetch(API_BASE + "?action=info&slug=" + encodeURIComponent(item.slug) + "&token=" + encodeURIComponent(item.ownerToken))
-            .then(function (data) {
-              updateHistoryEntry(item.slug, { clicks: data.totalClicks });
-              qs(".history-meta span", el).textContent = data.totalClicks + " klik";
-              renderStatsPanel(panel, data);
-            })
-            .catch(function () {
-              panel.innerHTML = '<p class="field-msg is-error">Tidak bisa memuat statistik saat ini.</p>';
-            });
-        }
-      });
-      qs('[data-action="edit"]', el).addEventListener("click", function () {
-        qs('[data-role="expiration-editor"]', el).classList.toggle("is-open");
-      });
-      var editSelect = qs('[data-role="edit-expiration"]', el);
-      var editDate = qs('[data-role="edit-custom-date"]', el);
-      editSelect.addEventListener("change", function () {
-        editDate.hidden = editSelect.value !== "custom";
-      });
-      qs('[data-action="save-expiration"]', el).addEventListener("click", function () {
-        var option = editSelect.value;
-        var customIso = null;
-        if (option === "custom") {
-          if (!editDate.value) { showToast("Pilih tanggal dan waktu dulu.", "error"); return; }
-          customIso = new Date(editDate.value).toISOString();
-        }
-        apiFetch(API_BASE + "?action=expiration&slug=" + encodeURIComponent(item.slug) + "&token=" + encodeURIComponent(item.ownerToken), {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ expirationOption: option, customExpiresAt: customIso })
-        })
-          .then(function (data) {
-            updateHistoryEntry(item.slug, { expiresAt: data.expiresAt, noExpiration: data.noExpiration });
-            showToast("Masa berlaku berhasil diperbarui.", "success");
-            renderHistory();
-          })
-          .catch(function () {
-            showToast("Gagal memperbarui masa berlaku.", "error");
-          });
-      });
-    });
+    }
   }
 
-  deleteModalCancel.addEventListener("click", function () {
-    deleteModalBackdrop.hidden = true;
-    pendingDeleteSlug = null;
+  function loadTrack(index){
+    if(playlistTracks.length === 0) return;
+    currentTrack = (index + playlistTracks.length) % playlistTracks.length;
+    var tr = playlistTracks[currentTrack];
+    playerTitle.textContent = tr.title;
+    playerArtist.textContent = tr.artist;
+    playerArt.src = tr.cover_url || '';
+    audio.src = tr.audio_url || '';
+    seek.value = 0;
+    timeCur.textContent = '0:00';
+    timeDur.textContent = tr.duration || '0:00';
+    renderPlaylist();
+  }
+
+  function playAudio(){
+    if(!audio.src){ return; }
+    audio.play();
+    iconPlay.style.display = 'none';
+    iconPause.style.display = '';
+  }
+  function pauseAudio(){
+    audio.pause();
+    iconPlay.style.display = '';
+    iconPause.style.display = 'none';
+  }
+
+  btnPlay.addEventListener('click', function(){
+    if(audio.paused){ playAudio(); } else { pauseAudio(); }
+  });
+  document.getElementById('btn-next').addEventListener('click', function(){ loadTrack(currentTrack + 1); playAudio(); });
+  document.getElementById('btn-prev').addEventListener('click', function(){ loadTrack(currentTrack - 1); playAudio(); });
+
+  audio.addEventListener('timeupdate', function(){
+    if(!audio.duration) return;
+    seek.value = (audio.currentTime / audio.duration) * 100;
+    timeCur.textContent = formatTime(audio.currentTime);
+  });
+  audio.addEventListener('loadedmetadata', function(){
+    timeDur.textContent = formatTime(audio.duration);
+  });
+  audio.addEventListener('ended', function(){ loadTrack(currentTrack + 1); playAudio(); });
+  seek.addEventListener('input', function(){
+    if(!audio.duration) return;
+    audio.currentTime = (seek.value / 100) * audio.duration;
   });
 
-  deleteModalConfirm.addEventListener("click", function () {
-    if (!pendingDeleteSlug) return;
-    var list = loadHistory();
-    var target = list.filter(function (item) { return item.slug === pendingDeleteSlug; })[0];
-    if (!target) { deleteModalBackdrop.hidden = true; return; }
-    deleteModalConfirm.disabled = true;
-    apiFetch(API_BASE + "?action=delete&slug=" + encodeURIComponent(target.slug) + "&token=" + encodeURIComponent(target.ownerToken), { method: "DELETE" })
-      .then(function () {
-        removeFromHistory(target.slug);
-        renderHistory();
-        showToast("Link berhasil dihapus.", "success");
+  function loadTracks(){
+    var client = getSupa();
+    if(!client) return;
+    client.from('tracks').select('*').order('sort_order', { ascending: true })
+      .then(function(res){
+        playlistTracks = res.error ? [] : (res.data || []);
+        if(playlistTracks.length > 0){
+          playlistCoverImg.src = playlistTracks[0].cover_url || '';
+          playlistSub.textContent = playlistTracks.length + ' lagu pilihan saya';
+          loadTrack(0);
+        } else {
+          playlistSub.textContent = 'Belum ada lagu ditambahkan';
+          renderPlaylist();
+        }
       })
-      .catch(function () {
-        showToast("Gagal menghapus link ini. Coba lagi.", "error");
-      })
-      .finally(function () {
-        deleteModalConfirm.disabled = false;
-        deleteModalBackdrop.hidden = true;
-        pendingDeleteSlug = null;
-      });
-  });
+      .catch(function(){ renderPlaylist(); });
+  }
+  loadTracks();
 
-  deleteModalBackdrop.addEventListener("click", function (e) {
-    if (e.target === deleteModalBackdrop) {
-      deleteModalBackdrop.hidden = true;
-      pendingDeleteSlug = null;
-    }
-  });
+  var contactGrid = document.getElementById('contact-grid');
+  var waLink = 'https://wa.me/' + CONFIG.contact.whatsappNumber + '?text=' + encodeURIComponent(CONFIG.contact.whatsappMessage);
+  var ttLink = 'https://www.tiktok.com/@' + CONFIG.contact.tiktokUsername;
+  var contacts = [
+    { key: 'Email', val: CONFIG.contact.email, href: 'mailto:' + CONFIG.contact.email, icon: '<path d="M4 4h16v16H4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 6l8 7 8-7" fill="none" stroke="currentColor" stroke-width="1.6"/>' },
+    { key: 'WhatsApp', val: '+' + CONFIG.contact.whatsappNumber, href: waLink, icon: '<path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 10a.5.5 0 0 0 1 0v-1a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { key: 'TikTok', val: '@' + CONFIG.contact.tiktokUsername, href: ttLink, icon: '<path d="M15 4v9.2a3.4 3.4 0 1 1-2.6-3.3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 4c.4 2.2 2 3.6 4 3.8" fill="none" stroke="currentColor" stroke-width="1.6"/>' },
+    { key: 'GitHub', val: 'Lihat repository', href: CONFIG.contact.github, icon: '<path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0c-2.4-1.6-3.5-1.3-3.5-1.3a4.2 4.2 0 0 0-.1 3.2 4.6 4.6 0 0 0-1.3 3.2c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2v3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { key: 'Instagram', val: '@drnalvrprtm', href: CONFIG.contact.instagram, icon: '<rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/>' }
+  ];
+  var cHtml = '';
+  for(var ci=0; ci<contacts.length; ci++){
+    var c = contacts[ci];
+    cHtml += '<a class="contact-card" data-reveal href="' + c.href + '" target="_blank" rel="noopener">' +
+      '<span class="contact-icon"><svg class="icon" viewBox="0 0 24 24">' + c.icon + '</svg></span>' +
+      '<span class="contact-text"><span class="contact-k">' + c.key + '</span><span class="contact-v">' + escapeHtml(c.val) + '</span></span>' +
+    '</a>';
+  }
+  contactGrid.innerHTML = cHtml;
+  observeNew(contactGrid.querySelectorAll('[data-reveal]'));
 
-  qs("#slugPrefix").textContent = window.location.host + "/";
+  document.getElementById('foot-year').textContent = '' + new Date().getFullYear() + ' Fitrah Akbar Maulana';
 
-  renderHistory();
-  initScrollReveal();
-  initHero3d();
-});
+})();
