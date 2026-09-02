@@ -445,21 +445,17 @@ img, svg { display: block; max-width: 100%; }
   margin-top: 6px;
 }
 
-.hero-art { display: none; }
-
-.hero3d-frame {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(160deg, var(--white), var(--blue-tint));
-  box-shadow: var(--shadow-lift);
-  overflow: hidden;
+.hero-art {
+  display: none;
+  align-items: center;
+  justify-content: center;
 }
 
-#hero3dCanvas {
+.hero-character {
   width: 100%;
-  height: 100%;
-  display: block;
+  max-width: 560px;
+  height: auto;
+  filter: drop-shadow(0 26px 46px rgba(15, 27, 61, 0.2));
 }
 
 .result-section { padding: 0 20px var(--space-md); }
@@ -914,7 +910,7 @@ img, svg { display: block; max-width: 100%; }
     grid-template-columns: 1.05fr 0.85fr;
     padding: var(--space-2xl) 20px 100px;
   }
-  .hero-art { display: block; }
+  .hero-art { display: flex; }
   .feature-grid { grid-template-columns: repeat(3, 1fr); }
   .input-icon { display: block; }
 }

@@ -139,108 +139,6 @@ function initScrollReveal() {
   items.forEach(function (el) { observer.observe(el); });
 }
 
-function initHero3d() {
-  var canvas = qs("#hero3dCanvas");
-  var frame = qs(".hero3d-frame");
-  if (!canvas || !frame || !window.THREE) return;
-  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  var scene = new window.THREE.Scene();
-  var camera = new window.THREE.PerspectiveCamera(38, 1, 0.1, 100);
-  camera.position.set(0, 0.6, 4.2);
-
-  var renderer = new window.THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-
-  var ambient = new window.THREE.AmbientLight(0xffffff, 0.65);
-  scene.add(ambient);
-  var keyLight = new window.THREE.DirectionalLight(0x2d6cff, 1.1);
-  keyLight.position.set(3, 4, 3);
-  scene.add(keyLight);
-  var rimLight = new window.THREE.DirectionalLight(0x0f1b3d, 0.5);
-  rimLight.position.set(-3, -2, -2);
-  scene.add(rimLight);
-
-  var activeObject = null;
-
-  function usePlaceholder() {
-    var geometry = new window.THREE.IcosahedronGeometry(1.15, 0);
-    var material = new window.THREE.MeshStandardMaterial({ color: 0x0f1b3d, metalness: 0.25, roughness: 0.35 });
-    var mesh = new window.THREE.Mesh(geometry, material);
-    var wireGeometry = new window.THREE.IcosahedronGeometry(1.3, 0);
-    var wireMaterial = new window.THREE.MeshBasicMaterial({ color: 0x2d6cff, wireframe: true, transparent: true, opacity: 0.35 });
-    var wireMesh = new window.THREE.Mesh(wireGeometry, wireMaterial);
-    var group = new window.THREE.Group();
-    group.add(mesh);
-    group.add(wireMesh);
-    scene.add(group);
-    activeObject = group;
-  }
-
-  function frameObject(object) {
-    var box = new window.THREE.Box3().setFromObject(object);
-    var size = new window.THREE.Vector3();
-    box.getSize(size);
-    var center = new window.THREE.Vector3();
-    box.getCenter(center);
-    object.position.sub(center);
-    var maxDim = Math.max(size.x, size.y, size.z) || 1;
-    var scaleFactor = 1.9 / maxDim;
-    object.scale.setScalar(scaleFactor);
-  }
-
-  if (window.THREE.GLTFLoader) {
-    var loader = new window.THREE.GLTFLoader();
-    if (window.THREE.DRACOLoader) {
-      var dracoLoader = new window.THREE.DRACOLoader();
-      dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.6/");
-      loader.setDRACOLoader(dracoLoader);
-    }
-    loader.load(
-      "model.glb",
-      function (gltf) {
-        var model = gltf.scene;
-        frameObject(model);
-        scene.add(model);
-        activeObject = model;
-      },
-      undefined,
-      function (loadError) {
-        console.error("Gagal memuat model.glb, menampilkan placeholder.", loadError);
-        usePlaceholder();
-      }
-    );
-  } else {
-    console.error("THREE.GLTFLoader tidak tersedia, menampilkan placeholder.");
-    usePlaceholder();
-  }
-
-  function resize() {
-    var width = frame.clientWidth;
-    var height = frame.clientHeight;
-    if (!width || !height) return;
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  }
-
-  resize();
-  window.addEventListener("resize", resize);
-  if (window.ResizeObserver) {
-    new ResizeObserver(resize).observe(frame);
-  }
-
-  function animate() {
-    requestAnimationFrame(animate);
-    if (activeObject && !reduceMotion) {
-      activeObject.rotation.y += 0.006;
-      activeObject.rotation.x = Math.sin(Date.now() * 0.0003) * 0.08;
-    }
-    renderer.render(scene, camera);
-  }
-  animate();
-}
-
 document.addEventListener("DOMContentLoaded", function () {
   var form = qs("#shortenForm");
   var urlInput = qs("#urlInput");
@@ -662,5 +560,4 @@ document.addEventListener("DOMContentLoaded", function () {
 
   renderHistory();
   initScrollReveal();
-  initHero3d();
 });
