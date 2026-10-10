@@ -214,13 +214,18 @@
 
 </main>
 
-<footer class="site-footer">
-  <div class="shell footer-inner">
-    <span class="footer-brand">AVMX</span>
-    <span>Dikembangkan oleh Fitrah Akbar Maulana</span>
-    <span class="footer-muted">Link yang kamu buat bersifat publik. Jangan perpendek link yang berisi data sensitif.</span>
+<div class="modal-backdrop" id="welcomeModalBackdrop" hidden>
+  <div class="modal-card modal-welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeModalTitle">
+    <img class="welcome-logo" src="/assets/logo.svg" alt="" width="64" height="64">
+    <h3 id="welcomeModalTitle">Selamat datang di AVMX</h3>
+    <p>Perpendek link dalam hitungan detik, tanpa akun.</p>
+    <p class="welcome-note">Link yang kamu buat bersifat publik. Jangan perpendek link yang berisi data sensitif.</p>
+    <p class="welcome-credit">Dikembangkan oleh Fitrah Akbar Maulana</p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="welcomeModalClose">Mengerti, mulai</button>
+    </div>
   </div>
-</footer>
+</div>
 
 <div class="modal-backdrop" id="deleteModalBackdrop" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
