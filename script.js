@@ -441,6 +441,8 @@ document.addEventListener("DOMContentLoaded", function () {
   var qrModalUrl = qs("#qrModalUrl");
   var qrModalClose = qs("#qrModalClose");
   var qrModalDownload = qs("#qrModalDownload");
+  var welcomeModalBackdrop = qs("#welcomeModalBackdrop");
+  var welcomeModalClose = qs("#welcomeModalClose");
   var pendingDeleteSlug = null;
   var currentQr = null;
   var slugAvailable = null;
@@ -460,7 +462,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function closeModal(backdrop) {
     backdrop.hidden = true;
-    if (deleteModalBackdrop.hidden && qrModalBackdrop.hidden) document.body.classList.remove("no-scroll");
+    if (deleteModalBackdrop.hidden && qrModalBackdrop.hidden && welcomeModalBackdrop.hidden) document.body.classList.remove("no-scroll");
   }
 
   function setOptionsOpen(open) {
@@ -878,6 +880,25 @@ document.addEventListener("DOMContentLoaded", function () {
   });
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") setMenu(false);
+  });
+
+  var WELCOME_KEY = "avmx_welcome_seen";
+  var welcomeSeen = false;
+  try { welcomeSeen = window.sessionStorage.getItem(WELCOME_KEY) === "1"; } catch (err) {}
+  if (!welcomeSeen) {
+    openModal(welcomeModalBackdrop);
+    welcomeModalClose.focus();
+  }
+  function dismissWelcome() {
+    closeModal(welcomeModalBackdrop);
+    try { window.sessionStorage.setItem(WELCOME_KEY, "1"); } catch (err) {}
+  }
+  welcomeModalClose.addEventListener("click", dismissWelcome);
+  welcomeModalBackdrop.addEventListener("click", function (e) {
+    if (e.target === welcomeModalBackdrop) dismissWelcome();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !welcomeModalBackdrop.hidden) dismissWelcome();
   });
 
   renderHistory();
