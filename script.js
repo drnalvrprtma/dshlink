@@ -858,5 +858,27 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!qrModalBackdrop.hidden) closeModal(qrModalBackdrop);
   });
 
+  var menuToggle = qs("#menuToggle");
+  var mainNav = qs("#mainNav");
+
+  function setMenu(open) {
+    mainNav.classList.toggle("is-open", open);
+    menuToggle.setAttribute("aria-expanded", String(open));
+    menuToggle.setAttribute("aria-label", open ? "Tutup menu" : "Buka menu");
+  }
+
+  menuToggle.addEventListener("click", function () {
+    setMenu(!mainNav.classList.contains("is-open"));
+  });
+  qsa("a", mainNav).forEach(function (link) {
+    link.addEventListener("click", function () { setMenu(false); });
+  });
+  document.addEventListener("click", function (e) {
+    if (!mainNav.contains(e.target) && !menuToggle.contains(e.target)) setMenu(false);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") setMenu(false);
+  });
+
   renderHistory();
 });
