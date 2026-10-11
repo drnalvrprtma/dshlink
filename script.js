@@ -887,7 +887,6 @@ document.addEventListener("DOMContentLoaded", function () {
   try { welcomeSeen = window.sessionStorage.getItem(WELCOME_KEY) === "1"; } catch (err) {}
   if (!welcomeSeen) {
     openModal(welcomeModalBackdrop);
-    welcomeModalClose.focus();
   }
   function dismissWelcome() {
     closeModal(welcomeModalBackdrop);
