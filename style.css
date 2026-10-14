@@ -272,6 +272,7 @@ button, input, select { font: inherit; color: inherit; }
 .modal-welcome .modal-actions { width: 100%; justify-content: center; }
 .welcome-socials { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 16px; }
 .social-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; background: var(--c); border: var(--bw) solid var(--ink); border-radius: 12px; box-shadow: 2px 2px 0 var(--ink); font-size: 14px; font-weight: 700; text-decoration: none; transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease); }
+.social-btn svg, .social-btn img { flex: none; width: 20px; height: 20px; }
 .social-btn:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
 .social-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
 
